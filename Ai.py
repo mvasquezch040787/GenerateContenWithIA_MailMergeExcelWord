@@ -9,6 +9,8 @@ from tqdm import tqdm
 import time
 from tkinter import ttk
 import multiprocessing
+from docx import Document
+import pandas as pd
 
 workBookData=""
 sheetTopics=""
@@ -53,6 +55,30 @@ def seleccionarArchivoData():
     workBookData=openpyxl.load_workbook(fileExcelData)
     global sheetData
     sheetData=workBookData.active 
+def seleccionarArchivoTemplateWord():
+    global fileTemplateWord
+    fileTemplateWord = tk.filedialog.askopenfilename(filetypes=[('Archivos Word', '*.docx')])
+def generateMailMerge():
+    docxTemplate=Document(fileTemplateWord)
+    dataExcel=pd.read_excel(fileExcelData)
+    documentoNew=Document()
+
+    for index,fila in dataExcel.iterrows():
+        for parrafo in docxTemplate.paragraphs:
+            texto = parrafo.text
+            texto = texto.replace('{AA}', fila['NAA'])
+            texto = texto.replace('{IL}', fila['ILS'])
+            texto = texto.replace('{SS}', fila['NS'])
+            texto = texto.replace('{TS}', fila['TEMA'])
+            texto = texto.replace('{PS}', fila['PROPOSITO'])
+            texto = texto.replace('{SA}', fila['TEMA'])
+            texto = texto.replace('{RA}', fila['RD'])
+            texto = texto.replace('{IN}', fila['INICIO'])
+            texto = texto.replace('{DE}', fila['DESARROLLO'])
+            texto = texto.replace('{CI}', fila['CIERRE'])
+            documentoNew.add_paragraph(texto)
+    documentoNew.save('PC_COMBINADA.DOCX')
+
 
 def Generate():
     genai.configure(api_key=Texts.API_KEY)
@@ -96,6 +122,13 @@ BtnChangeXlsx.grid(row=3,column=2)
 
 BtnGenerate=customtkinter.CTkButton(master=app, text="GENERAR CONTENIDO USANDO IA",width=1250,command=Generate)
 BtnGenerate.grid(row=4,column=2)
+
+BtnChangeDocx=customtkinter.CTkButton(master=app, text="Seleccionar Plantilla WORD",width=1250,command=seleccionarArchivoTemplateWord)
+BtnChangeDocx.grid(row=6,column=2)
+
+BtnGenerateDocx=customtkinter.CTkButton(master=app, text="GENERAR DOCUMENTO WORD",width=1250,command=generateMailMerge)
+BtnGenerateDocx.grid(row=7,column=2)
+
 app.state("zoomed")
 app.mainloop()
 
