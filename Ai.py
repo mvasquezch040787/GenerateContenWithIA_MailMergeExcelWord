@@ -1,5 +1,4 @@
 import customtkinter.windows
-import docx as docx
 import google.generativeai as genai
 from Data import Texts
 import customtkinter 
@@ -8,7 +7,6 @@ import openpyxl
 from tqdm import tqdm
 import time
 from tkinter import ttk
-import multiprocessing
 from docx import Document
 import pandas as pd
 
@@ -54,31 +52,54 @@ def seleccionarArchivoData():
     global workBookData
     workBookData=openpyxl.load_workbook(fileExcelData)
     global sheetData
-    sheetData=workBookData.active 
+    sheetData=workBookData.active
+
 def seleccionarArchivoTemplateWord():
     global fileTemplateWord
     fileTemplateWord = tk.filedialog.askopenfilename(filetypes=[('Archivos Word', '*.docx')])
+
 def generateMailMerge():
     docxTemplate=Document(fileTemplateWord)
-    dataExcel=pd.read_excel(fileExcelData)
-    documentoNew=Document()
+    ''' dataExcel=pd.read_excel(fileExcelData)'''
+    
+    marcadores=[]
+    for paragraph in docxTemplate.paragraphs:
+        for run in paragraph.runs:
+            if run.text.startswith('<<') and run.text.endswith('>>'):
+                marcador = run.text[2:-2]  # Elimina los delimitadores << y >>
+                marcadores.append(marcador)
+    print(docxTemplate)
+    print(marcadores)
 
-    for index,fila in dataExcel.iterrows():
+'''
+    for index, fila in dataExcel.iterrows():
         for parrafo in docxTemplate.paragraphs:
-            texto = parrafo.text
-            texto = texto.replace('{AA}', fila['NAA'])
-            texto = texto.replace('{IL}', fila['ILS'])
-            texto = texto.replace('{SS}', fila['NS'])
-            texto = texto.replace('{TS}', fila['TEMA'])
-            texto = texto.replace('{PS}', fila['PROPOSITO'])
-            texto = texto.replace('{SA}', fila['TEMA'])
-            texto = texto.replace('{RA}', fila['RD'])
-            texto = texto.replace('{IN}', fila['INICIO'])
-            texto = texto.replace('{DE}', fila['DESARROLLO'])
-            texto = texto.replace('{CI}', fila['CIERRE'])
-            documentoNew.add_paragraph(texto)
+            # Clonar el párrafo original (con su formato)
+            nuevo_parrafo = documentoNew.add_paragraph()
+            for run in parrafo.runs:
+                texto = run.text
+                texto = texto.replace('{AA}', str(fila['NAA']))
+                texto = texto.replace('{IL}', str(fila['ILS']))
+                texto = texto.replace('{SS}', str(fila['NS']))
+                texto = texto.replace('{TS}', str(fila['TEMA']))
+                texto = texto.replace('{PS}', str(fila['PROPOSITO']))
+                texto = texto.replace('{SA}', str(fila['TEMA']))
+                texto = texto.replace('{RA}', str(fila['RD']))
+                texto = texto.replace('{IN}', str(fila['INICIO']))
+                texto = texto.replace('{DE}', str(fila['DESARROLLO']))
+                texto = texto.replace('{CI}', str(fila['CIERRE']))
+                
+                # Agregar texto y formato al nuevo párrafo
+                nuevo_run = nuevo_parrafo.add_run(texto)
+                nuevo_run.bold = run.bold
+                nuevo_run.italic = run.italic
+                nuevo_run.underline = run.underline
+                nuevo_run.font.size = run.font.size
+                nuevo_run.font.name = run.font.name
+    
+    # Guardar el documento modificado
     documentoNew.save('PC_COMBINADA.DOCX')
-
+'''
 
 def Generate():
     genai.configure(api_key=Texts.API_KEY)
@@ -90,6 +111,7 @@ def Generate():
                 if cell.value is None:
                     break
                 else:
+                    time.sleep(1.5)
                     IL=str(model.generate_content(Texts.ACCURACYIL+cell.value+ " De "+TxtUnidad.get()+ "de la carrera de "+TxtCarrera.get()).text)
                     time.sleep(1.5)
                     sheetData[f'A{row_count}']=row_count-1
@@ -107,6 +129,7 @@ def Generate():
                     sheetData[f'I{row_count}']=(model.generate_content(Texts.ACCURACY_CIERRE+cell.value+ " De "+IL).text)
                     time.sleep(1.5)
                     workBookData.save(fileExcelData)
+                    time.sleep(1.5)
                     row_count+=1
             except ValueError as e:
                 print(e)
